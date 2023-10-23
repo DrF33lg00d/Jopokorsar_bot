@@ -1,0 +1,2 @@
+mypy>=1.6.1
+types-PyYAML>=6.0.12.12
