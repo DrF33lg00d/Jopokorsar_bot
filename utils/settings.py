@@ -25,7 +25,7 @@ def setup_logging() -> None:
     return None
 
 
-def get_logger(logger_name: str = "default") -> logging.Logger:
+def get_logger(logger_name: str | None = None) -> logging.Logger:
     logger = logging.getLogger(logger_name)
     return logger
 
