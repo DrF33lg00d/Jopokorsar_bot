@@ -1,6 +1,7 @@
 import logging
 import logging.config
 import os
+from pathlib import Path
 from contextlib import suppress
 from datetime import timedelta
 
@@ -18,26 +19,24 @@ class WarnFilter(logging.Filter):
 
 
 def setup_logging() -> None:
-    with open(os.path.join(os.getcwd(), 'utils', 'logging.yaml'), 'r') as f:
+    with open(os.path.join(os.getcwd(), "utils", "logging.yaml"), "r") as f:
         log_config = yaml.safe_load(f.read())
     logging.config.dictConfig(log_config)
     return None
 
 
-def get_logger(logger_name: str = 'default') -> logging.Logger:
+def get_logger(logger_name: str = "default") -> logging.Logger:
     logger = logging.getLogger(logger_name)
     return logger
 
 
-
-TOKEN = 'MMM SWEET'
+TOKEN = "MMM SWEET"
 ALLOWED_CHAT_ID = {123}
 PING_TIMEDELTA = timedelta(minutes=1)
+DB_PATH = Path(__file__).parent.parent / "db.db"
 
 
-WORDS: tuple[str] = (
-    'блин',
-)
+WORDS: tuple[str] = ("блин",)
 
 with suppress(ImportError):
     from utils.local_settings import *
