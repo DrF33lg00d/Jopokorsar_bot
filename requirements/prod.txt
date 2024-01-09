@@ -1,3 +1,4 @@
 aiogram>=3.1.1
 emoji>=2.8.0
 pyyaml>=6.0.1
+SQLAlchemy>=2.0.22
