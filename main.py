@@ -68,10 +68,7 @@ def get_seconds(seconds: int) -> str:
 
 class OnlyJopokorsarFilter(BaseFilter):
     async def __call__(self, message: Message) -> bool:
-        return (
-            message.chat.type in {"group", "private"}
-            and message.chat.id in ALLOWED_CHAT_ID
-        )
+        return message.chat.id in ALLOWED_CHAT_ID
 
 
 class OneMinuteFilter(BaseFilter):
