@@ -1,7 +1,6 @@
 import asyncio
 from collections import defaultdict
 from datetime import datetime, timedelta
-from webbrowser import get
 
 import emoji
 from aiogram import Bot, Dispatcher, types
@@ -86,11 +85,11 @@ class OneMinuteFilter(BaseFilter):
 
 class JopokorsarTextFilter(BaseFilter):
     async def __call__(self, message: Message) -> bool:
-        message_text = message.text.lower()
-        if message_text is None:
+        if message.text is None:
             return False
+        splitted_words_message = message.text.lower().split(" ")
         for word in WORDS:
-            if all(map(lambda w: w in message_text, word.split(" "))):
+            if all(map(lambda w: w in splitted_words_message, word.split(" "))):
                 return True
         return False
 
@@ -101,7 +100,7 @@ async def start(message: types.Message):
     if chat_obj[1]:
         logger.info("Start tracking: %s", chat_obj[0])
         await message.answer(
-            f'{emoji.emojize(":bomb:")} Отслеживание жопокорсара началось.'
+            f"{emoji.emojize(':bomb:')} Отслеживание жопокорсара началось."
         )
 
 
@@ -129,7 +128,7 @@ async def cmd_test1(message: types.Message):
 
     if message_delta:
         await message.reply(
-            f'{emoji.emojize(":bomb:")}Время без жопокорсара: {" ".join(message_delta)} {emoji.emojize(":collision:")}'
+            f"{emoji.emojize(':bomb:')}Время без жопокорсара: {' '.join(message_delta)} {emoji.emojize(':collision:')}"
         )
     del delta, message_delta, seconds, minutes, hours, days
     update_info(chat_obj.id, datetime.now())
