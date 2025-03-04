@@ -65,6 +65,14 @@ def get_seconds(seconds: int) -> str:
         return "секунд"
 
 
+def get_normilized_message(message: str) -> str:
+    result = message.lower()
+    for mark in ",.-?!:;":
+        result = result.replace(mark, " ")
+    result = result.replace("  ", " ").split(" ")
+    return result
+
+
 class OnlyJopokorsarFilter(BaseFilter):
     async def __call__(self, message: Message) -> bool:
         return message.chat.id in ALLOWED_CHAT_ID
@@ -87,9 +95,9 @@ class JopokorsarTextFilter(BaseFilter):
     async def __call__(self, message: Message) -> bool:
         if message.text is None:
             return False
-        splitted_words_message = message.text.lower().split(" ")
+        splitted_words = get_normilized_message(message.text)
         for word in WORDS:
-            if all(map(lambda w: w in splitted_words_message, word.split(" "))):
+            if all(map(lambda w: w in splitted_words, word.split(" "))):
                 return True
         return False
 
