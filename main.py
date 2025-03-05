@@ -5,8 +5,9 @@ from datetime import datetime, timedelta
 import emoji
 from aiogram import Bot, Dispatcher, types
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.filters import BaseFilter, Command
+from aiogram.filters import BaseFilter, CommandStart, StateFilter
 from aiogram.types import Message
+from src.words import router as word_router
 
 from src.db import Chat, get_or_create, update_info, init_tables
 from utils.settings import (
@@ -27,6 +28,7 @@ timings: dict[str, datetime] = defaultdict(datetime)
 
 bot = Bot(TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
+dp.include_router(word_router)
 
 
 def get_days(days: int) -> str:
@@ -102,7 +104,7 @@ class JopokorsarTextFilter(BaseFilter):
         return False
 
 
-@dp.message(Command("start"))
+@dp.message(CommandStart())
 async def start(message: types.Message):
     chat_obj = get_or_create(message.chat.id)
     if chat_obj[1]:
@@ -112,7 +114,9 @@ async def start(message: types.Message):
         )
 
 
-@dp.message(JopokorsarTextFilter(), OnlyJopokorsarFilter(), OneMinuteFilter())
+@dp.message(
+    JopokorsarTextFilter(), OnlyJopokorsarFilter(), OneMinuteFilter(), StateFilter(None)
+)
 async def cmd_test1(message: types.Message):
     chat_obj = get_or_create(message.chat.id)[0]
     logger.info("Triggered jopokorsar, old: %s", chat_obj)
