@@ -17,11 +17,17 @@ class WarnFilter(logging.Filter):
         return record.levelno >= logging.WARN
 
 
-def setup_logging() -> None:
-    log_config_path = Path(__file__).parent / "logging.yaml"
-    with log_config_path.open() as f:
-        log_config = yaml.safe_load(f.read())
-    logging.config.dictConfig(log_config)
+def setup_logging(level: logging._Level = "INFO") -> None:
+    try:
+        log_config_path = Path(__file__).parent / "logging.yaml"
+        with log_config_path.open() as f:
+            log_config = yaml.safe_load(f.read())
+        logging.config.dictConfig(log_config)
+    except Exception:
+        logging.basicConfig(
+            level=level,
+            format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+        )
     return None
 
 
