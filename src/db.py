@@ -1,7 +1,8 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, create_engine, select
-from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
+from sqlalchemy import DateTime, create_engine, select, ForeignKey, String
+from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, relationship
+from sqlalchemy.exc import IntegrityError
 
 from utils.settings import DB_PATH, get_logger, setup_logging
 
@@ -18,9 +19,21 @@ class Chat(Base):
     __tablename__ = "chat"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
     datetime_stamp: Mapped[datetime] = mapped_column(DateTime(), default=datetime.now())
+    words: Mapped[list["BanWord"]] = relationship(back_populates="chat")
 
     def __repr__(self) -> str:
         return f"Chat(id={self.id!r}, datetime={self.datetime_stamp!r})"
+
+
+class BanWord(Base):
+    __tablename__ = "ban_word"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
+    text: Mapped[str] = mapped_column(String())
+    chat_id: Mapped[int] = mapped_column(ForeignKey("chat.id"))
+    chat: Mapped["Chat"] = relationship(back_populates="words")
+
+    def __repr__(self) -> str:
+        return f"Word '{self.text}'"
 
 
 ENGINE = create_engine(f"sqlite:///{DB_PATH}", echo=True)
@@ -51,10 +64,12 @@ def get_or_create(id: int, dt_obj: datetime = datetime.now()) -> tuple[Chat, boo
             session.commit()
             logger.info("Created new record: %s", chat_obj)
             return chat_obj, True
+        except IntegrityError:
+            session.rollback()
+            logger.debug("Already exists in DB")
         except Exception as e:
             session.rollback()
             logger.warning("%s - %s", e.__class__.__name__, e.__context__)
 
-        query = select(Chat).where(Chat.id == id)
-        chat_obj = session.scalar(query)
+        chat_obj = session.get(Chat, id)
         return chat_obj, False
