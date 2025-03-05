@@ -162,4 +162,3 @@ cython_debug/
 .vscode/
 *.db
 logs/*
-!logs/*.md

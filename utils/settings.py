@@ -19,6 +19,8 @@ class WarnFilter(logging.Filter):
 
 def setup_logging(level: logging._Level = "INFO") -> None:
     try:
+        logs_folder = Path(__file__).parent.parent / "logs"
+        logs_folder.mkdir(exist_ok=True)
         log_config_path = Path(__file__).parent / "logging.yaml"
         with log_config_path.open() as f:
             log_config = yaml.safe_load(f.read())
