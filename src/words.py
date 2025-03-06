@@ -1,10 +1,12 @@
 from aiogram import F, Router
 from aiogram.filters import Command, StateFilter
+from aiogram.filters.callback_data import CallbackData
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import Message
+from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from src.db import Chat, get_or_create
+from src.db import BanWord, Chat, get_or_create
 from utils.settings import get_logger
 
 logger = get_logger()
@@ -16,6 +18,26 @@ class BanWordOperation(StatesGroup):
     removing_banword = State()
 
 
+class WordCallbackFactory(CallbackData, prefix="fabnum"):
+    action: str
+    value: str
+
+
+def get_keyboard_words(words: list[BanWord]) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text="отмена",
+        callback_data=WordCallbackFactory(action="cancel", value="cancel"),
+    )
+    for word in words:
+        builder.button(
+            text=word.text,
+            callback_data=WordCallbackFactory(action="delete", value=word.text),
+        )
+    builder.adjust(1, 5, repeat=True)
+    return builder.as_markup()
+
+
 @router.message(StateFilter(*BanWordOperation.__state_names__), Command("cancel"))
 @router.message(
     StateFilter(*BanWordOperation.__state_names__), F.text.lower() == "отмена"
@@ -25,9 +47,9 @@ async def cmd_cancel(message: Message, state: FSMContext) -> None:
         await message.answer("Нечего отменять")
         logger.debug("Nothing to cancel")
     else:
-        await state.clear()
         await message.answer("Понял, отмена")
         logger.debug("Cancel operation, set state 'None'")
+    await state.clear()
 
 
 @router.message(Command("add_banword"), StateFilter(None))
@@ -49,4 +71,54 @@ async def add_banword(message: Message, state: FSMContext):
     else:
         await message.answer("Ошибка при добавлении слова")
         logger.debug("Banword '%s' not added, set state 'None'", message.text.lower())
+    await state.clear()
+
+
+@router.message(Command("remove_banword"), StateFilter(None))
+async def cmd_remove_banword(message: Message, state: FSMContext):
+    chat_instance = get_or_create(message.chat.id)[0]
+    if chat_instance.words:
+        keyboard_markup = get_keyboard_words(chat_instance.words)
+        await state.set_state(BanWordOperation.removing_banword)
+        await state.set_data({"words": chat_instance.words})
+        await message.answer("Доступные слова:", reply_markup=keyboard_markup)
+        logger.debug(
+            "Find %d words, set state 'removing_banword'", len(chat_instance.words)
+        )
+    else:
+        await message.answer("Нет слов для удаления")
+        await state.clear()
+        logger.debug("No words to delete, set state 'None'")
+
+
+@router.callback_query(
+    BanWordOperation.removing_banword, WordCallbackFactory.filter(F.action == "delete")
+)
+async def remove_banword(
+    callback: CallbackQuery, state: FSMContext, callback_data: WordCallbackFactory
+):
+    data = await state.get_data()
+    words: list[BanWord] = data["words"]
+    word_to_delete: BanWord = next(
+        filter(lambda x: callback_data.value == x.text, words), None
+    )
+    is_deleted = word_to_delete.delete()
+    if is_deleted:
+        logger.debug("Word '%s' deleted, set state to 'None'", word_to_delete.text)
+        await callback.message.edit_text(
+            f"Слово '{word_to_delete.text}' удалено", reply_markup=None
+        )
+    else:
+        await callback.message.edit_text(
+            f"Слово '{word_to_delete.text}' не удалено", reply_markup=None
+        )
+    await state.clear()
+
+
+@router.callback_query(
+    StateFilter(*BanWordOperation.__state_names__),
+    WordCallbackFactory.filter(F.action == "cancel"),
+)
+async def callback_cancel(callback: CallbackQuery, state: FSMContext) -> None:
+    await callback.message.edit_text("Удаление слова отменено")
     await state.clear()
