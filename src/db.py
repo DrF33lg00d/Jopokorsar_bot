@@ -27,18 +27,17 @@ class Chat(Base):
 
     def add_banword(self, word: str) -> bool:
         word_instance = BanWord(text=word.lower(), chat=self)
-        with Session(ENGINE) as session:
-            try:
-                session.add(word_instance)
-                session.commit()
-                logger.debug("Created new word: %s", word_instance)
-                return True
-            except IntegrityError:
-                session.rollback()
-                logger.debug("Already exists in DB")
-            except Exception as e:
-                session.rollback()
-                logger.warning("%s - %s", e.__class__.__name__, e.__context__)
+        try:
+            SESSION.add(word_instance)
+            SESSION.commit()
+            logger.debug("Created new word: %s", word_instance)
+            return True
+        except IntegrityError:
+            SESSION.rollback()
+            logger.debug("Already exists in DB")
+        except Exception as e:
+            SESSION.rollback()
+            logger.warning("%s - %s", e.__class__.__name__, e.__context__)
         return False
 
 
@@ -55,15 +54,14 @@ class BanWord(Base):
         return f"Word '{self.text}'"
 
     def delete(self) -> bool:
-        with Session(ENGINE) as session:
-            session.delete(self)
-            try:
-                session.commit()
-                logger.debug("Word '%s' has been deleted")
-                return True
-            except Exception as e:
-                session.rollback()
-                logger.error("%s - %s", e.__class__, e.__context__)
+        try:
+            SESSION.delete(self)
+            SESSION.commit()
+            logger.debug("Word '%s' has been deleted")
+            return True
+        except Exception as e:
+            SESSION.rollback()
+            logger.error("%s - %s", e.__class__, e.__context__)
         return False
 
 
@@ -84,19 +82,17 @@ def update_info(id: int, new_dt_obj: datetime) -> None:
 
 
 def get_or_create(id: int, dt_obj: datetime = datetime.now()) -> tuple[Chat, bool]:
-    with Session(ENGINE) as session:
-        try:
-            chat_obj = Chat(id=id, datetime_stamp=dt_obj)
-            session.add(chat_obj)
-            session.commit()
-            logger.info("Created new record: %s", chat_obj)
-            return chat_obj, True
-        except IntegrityError:
-            session.rollback()
-            logger.debug("Already exists in DB")
-        except Exception as e:
-            session.rollback()
-            logger.warning("%s - %s", e.__class__.__name__, e.__context__)
-
-        chat_obj = session.get(Chat, id)
-        return chat_obj, False
+    try:
+        chat_obj = Chat(id=id, datetime_stamp=dt_obj)
+        SESSION.add(chat_obj)
+        SESSION.commit()
+        logger.info("Created new record: %s", chat_obj)
+        return chat_obj, True
+    except IntegrityError:
+        SESSION.rollback()
+        logger.debug("Already exists in DB")
+    except Exception as e:
+        SESSION.rollback()
+        logger.warning("%s - %s", e.__class__.__name__, e.__context__)
+    chat_obj = SESSION.get(Chat, id)
+    return chat_obj, False
