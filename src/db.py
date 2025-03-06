@@ -54,6 +54,18 @@ class BanWord(Base):
     def __repr__(self) -> str:
         return f"Word '{self.text}'"
 
+    def delete(self) -> bool:
+        with Session(ENGINE) as session:
+            session.delete(self)
+            try:
+                session.commit()
+                logger.debug("Word '%s' has been deleted")
+                return True
+            except Exception as e:
+                session.rollback()
+                logger.error("%s - %s", e.__class__, e.__context__)
+        return False
+
 
 def init_tables() -> None:
     Base.metadata.create_all(ENGINE)
@@ -68,7 +80,7 @@ def update_info(id: int, new_dt_obj: datetime) -> None:
         return None
     chat_obj.datetime_stamp = new_dt_obj
     SESSION.commit()
-    logger.info("Chat %d change datetime to %s", id, str(new_dt_obj))
+    logger.debug("Chat %d change datetime to %s", id, str(new_dt_obj))
 
 
 def get_or_create(id: int, dt_obj: datetime = datetime.now()) -> tuple[Chat, bool]:
