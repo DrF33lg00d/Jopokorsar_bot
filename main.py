@@ -3,22 +3,22 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 
 import emoji
-from aiogram import Bot, Dispatcher, types
+from aiogram import Bot, Dispatcher, F, types
+from aiogram.filters import BaseFilter, Command, CommandStart, StateFilter
+from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.filters import BaseFilter, CommandStart, StateFilter
 from aiogram.types import Message
-from src.words import router as word_router
 
-from src.db import Chat, get_or_create, update_info, init_tables
+from src.db import Chat, get_or_create, init_tables, update_info
+from src.words import router as word_router
 from utils.settings import (
-    TOKEN,
     ALLOWED_CHAT_ID,
     PING_TIMEDELTA,
+    TOKEN,
     WORDS,
-    setup_logging,
     get_logger,
+    setup_logging,
 )
-
 
 setup_logging()
 logger = get_logger()

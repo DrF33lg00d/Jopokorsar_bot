@@ -1,8 +1,8 @@
 import logging
 import logging.config
-from pathlib import Path
 from contextlib import suppress
 from datetime import timedelta
+from pathlib import Path
 
 import yaml
 
@@ -17,7 +17,7 @@ class WarnFilter(logging.Filter):
         return record.levelno >= logging.WARN
 
 
-def setup_logging(level: logging._Level = "INFO") -> None:
+def setup_logging(level: str | int = "INFO") -> None:
     try:
         logs_folder = Path(__file__).parent.parent / "logs"
         logs_folder.mkdir(exist_ok=True)
