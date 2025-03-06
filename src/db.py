@@ -44,9 +44,11 @@ class Chat(Base):
 
 class BanWord(Base):
     __tablename__ = "ban_word"
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    text: Mapped[str] = mapped_column(String(), unique=True)
-    chat_id: Mapped[int] = mapped_column(ForeignKey("chat.id"))
+    text: Mapped[str] = mapped_column(String(), primary_key=True, unique=True)
+    chat_id: Mapped[int] = mapped_column(
+        ForeignKey("chat.id"),
+        primary_key=True,
+    )
     chat: Mapped["Chat"] = relationship(back_populates="words")
 
     def __repr__(self) -> str:
