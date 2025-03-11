@@ -42,7 +42,7 @@ TOKEN = "MMM SWEET"
 ALLOWED_CHAT_ID = {123}
 PING_TIMEDELTA = timedelta(minutes=1)
 DB_PATH = Path(__file__).parent.parent / "db.db"
-
+WORDS_LIMIT = 100
 
 WORDS: tuple[str] = ("блин",)
 

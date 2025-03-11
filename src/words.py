@@ -7,7 +7,7 @@ from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from src.db import BanWord, Chat, get_or_create
-from utils.settings import get_logger
+from utils.settings import WORDS_LIMIT, get_logger
 
 logger = get_logger()
 router = Router()
@@ -54,10 +54,14 @@ async def cmd_cancel(message: Message, state: FSMContext) -> None:
 
 @router.message(Command("add_banword"), StateFilter(None))
 async def cmd_add_banword(message: Message, state: FSMContext):
-    await message.answer("Какое слово добавляем?")
-    await state.set_state(BanWordOperation.adding_banword)
-    await state.set_data({"chat": get_or_create(message.chat.id)[0]})
-    logger.debug("Going to adding banword, set state 'adding_banword'")
+    chat_instance = get_or_create(message.chat.id)[0]
+    if len(chat_instance.words) <= WORDS_LIMIT:
+        await message.answer("Какое слово добавляем?")
+        await state.set_state(BanWordOperation.adding_banword)
+        await state.set_data({"chat": get_or_create(message.chat.id)[0]})
+        logger.debug("Going to adding banword, set state 'adding_banword'")
+    else:
+        await message.answer("Превышен лимит слов в 100")
 
 
 @router.message(BanWordOperation.adding_banword, F.text)
