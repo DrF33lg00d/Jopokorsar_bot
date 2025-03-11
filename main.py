@@ -1,5 +1,4 @@
 import asyncio
-from collections import defaultdict
 from datetime import datetime, timedelta
 
 import emoji
@@ -14,7 +13,6 @@ from utils.settings import (
     ALLOWED_CHAT_ID,
     PING_TIMEDELTA,
     TOKEN,
-    WORDS,
     get_logger,
     setup_logging,
 )
@@ -23,7 +21,6 @@ setup_logging()
 logger = get_logger()
 init_tables()
 
-timings: dict[str, datetime] = defaultdict(datetime)
 
 bot = Bot(TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
@@ -96,9 +93,10 @@ class JopokorsarTextFilter(BaseFilter):
     async def __call__(self, message: Message) -> bool:
         if message.text is None:
             return False
+        chat_instance = get_or_create(message.chat.id)[0]
         splitted_words = get_normilized_message(message.text)
-        for word in WORDS:
-            if all(map(lambda w: w in splitted_words, word.split(" "))):
+        for word in chat_instance.words:
+            if all(map(lambda w: w in splitted_words, word.text.split(" "))):
                 return True
         return False
 
@@ -114,7 +112,7 @@ async def start(message: types.Message):
 
 
 @dp.message(
-    JopokorsarTextFilter(), OnlyJopokorsarFilter(), OneMinuteFilter(), StateFilter(None)
+    OnlyJopokorsarFilter(), JopokorsarTextFilter(), OneMinuteFilter(), StateFilter(None)
 )
 async def cmd_test1(message: types.Message):
     chat_obj = get_or_create(message.chat.id)[0]
