@@ -146,7 +146,9 @@ async def cmd_statistics(message: Message):
     chat_instance = get_or_create(message.chat.id)[0]
     if chat_instance.words:
         results_usages = get_statistics(list(chat_instance.get_usages()))
-        message_text = "Статистика по использованию слов за последний месяц:\n"
+        message_text = f"Добавленные в чате слова ({len(chat_instance.words)}):\n"
+        message_text += ", ".join([f"'{word.text}'" for word in chat_instance.words])
+        message_text += "\nСтатистика по использованию слов за последний месяц:\n"
         message_text += "\n".join(
             [f"'{word}' - {qty}" for word, qty in results_usages.items()]
         )
