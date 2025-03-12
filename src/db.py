@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import Iterator
 
 from sqlalchemy import DATETIME, DateTime, ForeignKey, String, create_engine, select
 from sqlalchemy.exc import IntegrityError
@@ -39,6 +40,11 @@ class Chat(Base):
             SESSION.rollback()
             logger.warning("%s - %s", e.__class__.__name__, e.__context__)
         return False
+
+    def get_usages(self) -> Iterator["BanWordUsage"]:
+        for word in self.words:
+            for usage in word.usages:
+                yield usage
 
 
 class BanWord(Base):
@@ -91,7 +97,9 @@ class BanWord(Base):
 
 class BanWordUsage(Base):
     __tablename__ = "ban_word_usage"
-    date_time: datetime = mapped_column(DATETIME(), primary_key=True, nullable=False)
+    date_time: Mapped[datetime] = mapped_column(
+        DATETIME(), primary_key=True, nullable=False
+    )
     text: Mapped[str] = mapped_column(ForeignKey("ban_word.text"), primary_key=True)
     chat_id: Mapped[int] = mapped_column(
         ForeignKey("ban_word.chat_id"), primary_key=True

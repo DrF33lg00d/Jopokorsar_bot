@@ -1,3 +1,6 @@
+from collections import defaultdict
+from datetime import UTC, datetime, timedelta
+
 from aiogram import F, Router
 from aiogram.filters import Command, StateFilter
 from aiogram.filters.callback_data import CallbackData
@@ -6,7 +9,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from src.db import BanWord, Chat, get_or_create
+from src.db import BanWord, BanWordUsage, Chat, get_or_create
 from utils.settings import WORDS_LIMIT, get_logger
 
 logger = get_logger()
@@ -126,3 +129,27 @@ async def remove_banword(
 async def callback_cancel(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.message.edit_text("Удаление слова отменено")
     await state.clear()
+
+
+@router.message(Command("statistics"), StateFilter(None))
+async def cmd_statistics(message: Message):
+    def get_statistics(usages: list[BanWordUsage]) -> dict[str, int]:
+        month_ago = datetime.now(tz=UTC) - timedelta(weeks=4.5)
+        filtered_usages = filter(
+            lambda dt: dt.date_time.replace(tzinfo=UTC) >= month_ago, usages
+        )
+        results = defaultdict(int)
+        for usage in filtered_usages:
+            results[usage.text] += 1
+        return dict(sorted(results.items(), key=lambda item: item[1], reverse=True))
+
+    chat_instance = get_or_create(message.chat.id)[0]
+    if chat_instance.words:
+        results_usages = get_statistics(list(chat_instance.get_usages()))
+        message_text = "Статистика по использованию слов за последний месяц:\n"
+        message_text += "\n".join(
+            [f"'{word}' - {qty}" for word, qty in results_usages.items()]
+        )
+        await message.answer(message_text)
+    else:
+        await message.answer("Нет слов для сбора статистики")
