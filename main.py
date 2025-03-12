@@ -1,32 +1,30 @@
 import asyncio
-from collections import defaultdict
 from datetime import datetime, timedelta
 
 import emoji
 from aiogram import Bot, Dispatcher, types
+from aiogram.filters import BaseFilter, CommandStart, StateFilter
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.filters import BaseFilter, Command
 from aiogram.types import Message
 
-from src.db import Chat, get_or_create, update_info, init_tables
+from src.db import Chat, get_or_create, init_tables, update_info
+from src.words import router as word_router
 from utils.settings import (
-    TOKEN,
     ALLOWED_CHAT_ID,
     PING_TIMEDELTA,
-    WORDS,
-    setup_logging,
+    TOKEN,
     get_logger,
+    setup_logging,
 )
-
 
 setup_logging()
 logger = get_logger()
 init_tables()
 
-timings: dict[str, datetime] = defaultdict(datetime)
 
 bot = Bot(TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
+dp.include_router(word_router)
 
 
 def get_days(days: int) -> str:
@@ -95,14 +93,16 @@ class JopokorsarTextFilter(BaseFilter):
     async def __call__(self, message: Message) -> bool:
         if message.text is None:
             return False
+        chat_instance = get_or_create(message.chat.id)[0]
         splitted_words = get_normilized_message(message.text)
-        for word in WORDS:
-            if all(map(lambda w: w in splitted_words, word.split(" "))):
+        for word in chat_instance.words:
+            if all(map(lambda w: w in splitted_words, word.text.split(" "))):
+                word.add_usage()
                 return True
         return False
 
 
-@dp.message(Command("start"))
+@dp.message(CommandStart())
 async def start(message: types.Message):
     chat_obj = get_or_create(message.chat.id)
     if chat_obj[1]:
@@ -112,7 +112,9 @@ async def start(message: types.Message):
         )
 
 
-@dp.message(JopokorsarTextFilter(), OnlyJopokorsarFilter(), OneMinuteFilter())
+@dp.message(
+    OnlyJopokorsarFilter(), JopokorsarTextFilter(), OneMinuteFilter(), StateFilter(None)
+)
 async def cmd_test1(message: types.Message):
     chat_obj = get_or_create(message.chat.id)[0]
     logger.info("Triggered jopokorsar, old: %s", chat_obj)
