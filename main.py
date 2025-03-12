@@ -97,6 +97,7 @@ class JopokorsarTextFilter(BaseFilter):
         splitted_words = get_normilized_message(message.text)
         for word in chat_instance.words:
             if all(map(lambda w: w in splitted_words, word.text.split(" "))):
+                word.add_usage()
                 return True
         return False
 

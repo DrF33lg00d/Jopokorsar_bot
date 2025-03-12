@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, create_engine, select
+from sqlalchemy import DATETIME, DateTime, ForeignKey, String, create_engine, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, relationship
 
@@ -49,6 +49,10 @@ class BanWord(Base):
         primary_key=True,
     )
     chat: Mapped["Chat"] = relationship(back_populates="words")
+    usages: Mapped[list["BanWordUsage"]] = relationship(
+        "BanWordUsage",
+        primaryjoin="and_(BanWord.text==BanWordUsage.text, BanWord.chat_id==BanWordUsage.chat_id)",
+    )
 
     def __repr__(self) -> str:
         return f"Word '{self.text}'"
@@ -57,12 +61,46 @@ class BanWord(Base):
         try:
             SESSION.delete(self)
             SESSION.commit()
-            logger.debug("Word '%s' has been deleted")
+            logger.debug("Word '%s' has been deleted", self.text)
             return True
         except Exception as e:
             SESSION.rollback()
             logger.error("%s - %s", e.__class__, e.__context__)
         return False
+
+    def add_usage(self) -> bool:
+        usage = BanWordUsage(
+            date_time=datetime.now(UTC),
+            text=self.text,
+            chat_id=self.chat_id,
+        )
+        try:
+            SESSION.add(usage)
+            SESSION.commit()
+            logger.debug(
+                "Word '%s' used with datetime '%s'",
+                self.text,
+                usage.date_time.isoformat(),
+            )
+            return True
+        except Exception as e:
+            SESSION.rollback()
+            logger.error("%s - %s", e.__class__, e.__context__)
+        return False
+
+
+class BanWordUsage(Base):
+    __tablename__ = "ban_word_usage"
+    date_time: datetime = mapped_column(DATETIME(), primary_key=True, nullable=False)
+    text: Mapped[str] = mapped_column(ForeignKey("ban_word.text"), primary_key=True)
+    chat_id: Mapped[int] = mapped_column(
+        ForeignKey("ban_word.chat_id"), primary_key=True
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"Word '{self.text}' used {self.date_time.strftime('%y-%m-%d, %H:%M:%S')}"
+        )
 
 
 def init_tables() -> None:
